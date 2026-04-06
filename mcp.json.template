@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment": "Copy to ~/.claude/.mcp.json and fill in your API keys",
+  "mcpServers": {
+    "codex": {
+      "_comment": "Codex CLI MCP server — install: npm i -g @openai/codex",
+      "command": "codex",
+      "args": ["mcp-server"]
+    },
+    "gemini": {
+      "_comment": "Gemini CLI MCP server — install: npm i -g @anthropic-ai/gemini-cli",
+      "command": "gemini",
+      "args": ["--mcp"]
+    },
+    "groksearch": {
+      "_comment": "Optional: Grok-powered web search. Replace with your own search MCP.",
+      "command": "python3",
+      "args": ["-m", "grok_search.server"],
+      "env": {
+        "GROK_API_URL": "https://api.x.ai/v1",
+        "GROK_API_KEY": "<YOUR_GROK_API_KEY>",
+        "GROK_MODEL": "grok-3",
+        "TAVILY_ENABLED": "true",
+        "TAVILY_API_KEY": "<YOUR_TAVILY_API_KEY>"
+      }
+    }
+  }
+}
