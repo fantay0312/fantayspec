@@ -1,111 +1,154 @@
 #!/bin/bash
-# FantaySpec v3.0 Installer
-# Multi-Model Orchestration Framework for Claude Code
-# Requires: Claude Code, Codex CLI, Gemini CLI
-
+# FantaySpec v3.0 — Complete Installer
+# Configures both Claude Code and Codex CLI
 set -e
 
-CLAUDE_DIR="$HOME/.claude"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CLAUDE_DIR="$HOME/.claude"
+CODEX_DIR="$HOME/.codex"
 
-echo "╔══════════════════════════════════════╗"
-echo "║     FantaySpec v3.0 Installer        ║"
-echo "║  Multi-Model Orchestration Framework ║"
-echo "╚══════════════════════════════════════╝"
+echo "╔══════════════════════════════════════════╗"
+echo "║     FantaySpec v3.0 Complete Installer    ║"
+echo "║  Claude Code + Codex CLI Configuration    ║"
+echo "╚══════════════════════════════════════════╝"
 echo ""
 
-# Check prerequisites
-check_command() {
-  if command -v "$1" &>/dev/null; then
-    echo "  ✓ $1 found"
-    return 0
-  else
-    echo "  ✗ $1 not found (optional: $2)"
-    return 1
+# ─── Prerequisites ───
+echo "Checking prerequisites..."
+check() { command -v "$1" &>/dev/null && echo "  ✓ $1" || echo "  ✗ $1 (install: $2)"; }
+check "claude" "https://claude.ai/code"
+check "codex" "npm i -g @openai/codex"
+check "gemini" "https://github.com/google-gemini/gemini-cli"
+echo ""
+
+# ─── Backup ───
+backup() {
+  local dir="$1" name="$2"
+  if [ -f "$dir/CLAUDE.md" ] || [ -f "$dir/AGENTS.md" ]; then
+    local bak="$dir/backup-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$bak"
+    for f in CLAUDE.md AGENTS.md; do [ -f "$dir/$f" ] && cp "$dir/$f" "$bak/"; done
+    for d in commands specs prompts agents hooks scripts skills; do
+      [ -d "$dir/$d" ] && cp -r "$dir/$d" "$bak/"
+    done
+    echo "  ✓ $name backup → $bak"
   fi
 }
 
-echo "Checking prerequisites..."
-check_command "claude" "Required - install from https://claude.ai/code" || exit 1
-check_command "codex" "Optional - install with: npm i -g @openai/codex" || true
-check_command "gemini" "Optional - install from https://github.com/google-gemini/gemini-cli" || true
+echo "Backing up existing configs..."
+backup "$CLAUDE_DIR" "Claude Code"
+backup "$CODEX_DIR" "Codex"
 echo ""
 
-# Backup existing config
-if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then
-  BACKUP_DIR="$CLAUDE_DIR/backup-$(date +%Y%m%d-%H%M%S)"
-  echo "Backing up existing config to $BACKUP_DIR..."
-  mkdir -p "$BACKUP_DIR"
-  cp "$CLAUDE_DIR/CLAUDE.md" "$BACKUP_DIR/" 2>/dev/null || true
-  cp "$CLAUDE_DIR/AGENTS.md" "$BACKUP_DIR/" 2>/dev/null || true
-  cp -r "$CLAUDE_DIR/commands" "$BACKUP_DIR/" 2>/dev/null || true
-  cp -r "$CLAUDE_DIR/specs" "$BACKUP_DIR/" 2>/dev/null || true
-  cp -r "$CLAUDE_DIR/prompts" "$BACKUP_DIR/" 2>/dev/null || true
-  echo "  ✓ Backup saved"
-fi
+# ─── Install Claude Code ───
+echo "Installing Claude Code configuration..."
+SRC="$SCRIPT_DIR/claude-code"
 
-# Install core files
-echo ""
-echo "Installing FantaySpec v3.0..."
-
-cp "$SCRIPT_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
-cp "$SCRIPT_DIR/AGENTS.md" "$CLAUDE_DIR/AGENTS.md"
+cp "$SRC/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
+cp "$SRC/AGENTS.md" "$CLAUDE_DIR/AGENTS.md"
 echo "  ✓ CLAUDE.md + AGENTS.md"
 
-# Specs
-mkdir -p "$CLAUDE_DIR/specs"
-cp "$SCRIPT_DIR/specs/"*.md "$CLAUDE_DIR/specs/"
-echo "  ✓ specs/ ($(ls "$SCRIPT_DIR/specs/"*.md | wc -l | tr -d ' ') files)"
+mkdir -p "$CLAUDE_DIR/specs" && cp "$SRC/specs/"*.md "$CLAUDE_DIR/specs/"
+echo "  ✓ specs/"
 
-# Commands
-mkdir -p "$CLAUDE_DIR/commands"
-cp "$SCRIPT_DIR/commands/"*.md "$CLAUDE_DIR/commands/"
-echo "  ✓ commands/ ($(ls "$SCRIPT_DIR/commands/"*.md | wc -l | tr -d ' ') files)"
+mkdir -p "$CLAUDE_DIR/commands" && cp "$SRC/commands/"*.md "$CLAUDE_DIR/commands/"
+echo "  ✓ commands/"
 
-# Role prompts
 mkdir -p "$CLAUDE_DIR/prompts/codex" "$CLAUDE_DIR/prompts/gemini" "$CLAUDE_DIR/prompts/claude"
-cp "$SCRIPT_DIR/prompts/codex/"*.md "$CLAUDE_DIR/prompts/codex/"
-cp "$SCRIPT_DIR/prompts/gemini/"*.md "$CLAUDE_DIR/prompts/gemini/"
-cp "$SCRIPT_DIR/prompts/claude/"*.md "$CLAUDE_DIR/prompts/claude/"
-echo "  ✓ prompts/ (codex/6 + gemini/7 + claude/3)"
+cp "$SRC/prompts/codex/"*.md "$CLAUDE_DIR/prompts/codex/"
+cp "$SRC/prompts/gemini/"*.md "$CLAUDE_DIR/prompts/gemini/"
+cp "$SRC/prompts/claude/"*.md "$CLAUDE_DIR/prompts/claude/"
+echo "  ✓ prompts/ (16 role templates)"
 
-# Agents
-mkdir -p "$CLAUDE_DIR/agents"
-cp "$SCRIPT_DIR/agents/"*.md "$CLAUDE_DIR/agents/"
-echo "  ✓ agents/ ($(ls "$SCRIPT_DIR/agents/"*.md | wc -l | tr -d ' ') files)"
+mkdir -p "$CLAUDE_DIR/agents" && cp "$SRC/agents/"*.md "$CLAUDE_DIR/agents/"
+echo "  ✓ agents/"
 
-# Hooks
-mkdir -p "$CLAUDE_DIR/hooks"
-cp "$SCRIPT_DIR/hooks/hooks.json" "$CLAUDE_DIR/hooks/"
-echo "  ✓ hooks/hooks.json"
+mkdir -p "$CLAUDE_DIR/hooks" && cp "$SRC/hooks/hooks.json" "$CLAUDE_DIR/hooks/"
+echo "  ✓ hooks/"
 
-# Scripts
-mkdir -p "$CLAUDE_DIR/scripts"
-cp "$SCRIPT_DIR/scripts/"* "$CLAUDE_DIR/scripts/"
+mkdir -p "$CLAUDE_DIR/scripts" && cp "$SRC/scripts/"* "$CLAUDE_DIR/scripts/"
 echo "  ✓ scripts/"
 
-# Skills
-mkdir -p "$CLAUDE_DIR/skills/multi-ai"
-cp "$SCRIPT_DIR/skills/multi-ai/SKILL.md" "$CLAUDE_DIR/skills/multi-ai/"
-echo "  ✓ skills/multi-ai"
+# Skills - copy all subdirectories
+for skill_dir in "$SRC/skills"/*/; do
+  skill_name=$(basename "$skill_dir")
+  mkdir -p "$CLAUDE_DIR/skills/$skill_name"
+  cp -R "$skill_dir"* "$CLAUDE_DIR/skills/$skill_name/" 2>/dev/null || true
+done
+echo "  ✓ skills/ ($(ls -d "$SRC/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') skills)"
+
+# Templates (user must configure manually)
+if [ -f "$SRC/settings.json.template" ] && [ ! -f "$CLAUDE_DIR/settings.json" ]; then
+  cp "$SRC/settings.json.template" "$CLAUDE_DIR/settings.json"
+  echo "  ✓ settings.json (from template — customize!)"
+else
+  echo "  - settings.json exists, skipped (template at $SRC/settings.json.template)"
+fi
+
+if [ -f "$SRC/mcp.json.template" ] && [ ! -f "$CLAUDE_DIR/.mcp.json" ]; then
+  cp "$SRC/mcp.json.template" "$CLAUDE_DIR/.mcp.json"
+  echo "  ✓ .mcp.json (from template — add your API keys!)"
+else
+  echo "  - .mcp.json exists, skipped (template at $SRC/mcp.json.template)"
+fi
 
 echo ""
-echo "╔══════════════════════════════════════╗"
-echo "║     ✅ Installation Complete          ║"
-echo "╚══════════════════════════════════════╝"
+
+# ─── Install Codex ───
+echo "Installing Codex configuration..."
+SRC="$SCRIPT_DIR/codex"
+
+if [ ! -d "$CODEX_DIR" ]; then
+  mkdir -p "$CODEX_DIR"
+  echo "  Created $CODEX_DIR"
+fi
+
+cp "$SRC/AGENTS.md" "$CODEX_DIR/AGENTS.md"
+cp "$SRC/orchestrator.yaml" "$CODEX_DIR/orchestrator.yaml"
+cp "$SRC/hooks.json" "$CODEX_DIR/hooks.json"
+echo "  ✓ AGENTS.md + orchestrator.yaml + hooks.json"
+
+for d in commands agents rules contexts templates workflows references; do
+  if [ -d "$SRC/$d" ]; then
+    mkdir -p "$CODEX_DIR/$d"
+    cp "$SRC/$d/"* "$CODEX_DIR/$d/" 2>/dev/null || true
+    echo "  ✓ $d/"
+  fi
+done
+
+# Skills
+for skill_dir in "$SRC/skills"/*/; do
+  skill_name=$(basename "$skill_dir")
+  mkdir -p "$CODEX_DIR/skills/$skill_name"
+  cp -R "$skill_dir"* "$CODEX_DIR/skills/$skill_name/" 2>/dev/null || true
+done
+echo "  ✓ skills/ ($(ls -d "$SRC/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') skills)"
+
+if [ -f "$SRC/config.toml.template" ] && [ ! -f "$CODEX_DIR/config.toml" ]; then
+  cp "$SRC/config.toml.template" "$CODEX_DIR/config.toml"
+  echo "  ✓ config.toml (from template)"
+else
+  echo "  - config.toml exists, skipped (template at $SRC/config.toml.template)"
+fi
+
 echo ""
-echo "Installed: 49 files"
-echo "  - 2 core configs (CLAUDE.md, AGENTS.md)"
-echo "  - 8 specs"
-echo "  - 5 commands (/research /ideate /plan /impl /verify)"
-echo "  - 16 role prompts (codex/6 + gemini/7 + claude/3)"
-echo "  - 15 agents"
-echo "  - 1 hook config + 1 script"
-echo "  - 1 skill (multi-ai)"
+echo "╔══════════════════════════════════════════╗"
+echo "║         ✅ Installation Complete           ║"
+echo "╚══════════════════════════════════════════╝"
+echo ""
+echo "Claude Code:"
+echo "  - Config: $CLAUDE_DIR/"
+echo "  - Skills: $(ls -d "$CLAUDE_DIR/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') installed"
+echo "  - Agents: $(ls "$CLAUDE_DIR/agents/"*.md 2>/dev/null | wc -l | tr -d ' ') installed"
+echo ""
+echo "Codex CLI:"
+echo "  - Config: $CODEX_DIR/"
+echo "  - Skills: $(ls -d "$CODEX_DIR/skills"/*/ 2>/dev/null | wc -l | tr -d ' ') installed"
+echo "  - Agents: $(ls "$CODEX_DIR/agents/"*.md 2>/dev/null | wc -l | tr -d ' ') installed"
 echo ""
 echo "Next steps:"
-echo "  1. Configure MCP servers for Codex and Gemini"
-echo "  2. Restart Claude Code: claude"
-echo "  3. Try: /research <your task>"
-echo ""
-echo "Docs: https://github.com/anthropics/fantayspec"
+echo "  1. Edit ~/.claude/settings.json (if created from template)"
+echo "  2. Edit ~/.claude/.mcp.json — add your API keys"
+echo "  3. Edit ~/.codex/config.toml (if created from template)"
+echo "  4. Install Codex plugin: claude plugin marketplace add openai/codex-plugin-cc"
+echo "  5. Restart: claude"

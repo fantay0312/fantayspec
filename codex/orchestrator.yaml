@@ -1,0 +1,53 @@
+# FantaySpec v3.0 — Codex Orchestrator
+# Codex 作为后端专家，编排由 Claude Code 负责
+
+version: "3.0"
+platform: "codex-cli"
+role: "backend-expert"
+
+# 模型配置
+model:
+  default: gpt-5.4
+  reasoning_effort: xhigh
+  service_tier: fast
+
+# 工作流 (独立使用时)
+workflow:
+  phases: [research, plan, impl, verify]
+  complexity:
+    A: { criteria: "single file, <30 lines", flow: "impl → verify" }
+    B: { criteria: "2-10 files", flow: "plan → impl → verify" }
+    C: { criteria: ">10 files", flow: "research → plan → impl → verify" }
+
+# 技能 (精简，只保留工具类)
+skills:
+  core:
+    - context7            # 库文档获取
+    - code-quality        # 代码质量检查
+    - verification-loop   # 验证循环
+  optional:
+    - service-analysis    # 服务理解
+    - strategic-compact   # 上下文管理
+
+# Agent (精简)
+agents:
+  planner:
+    role: 实现计划制定
+    model: gpt-5.4
+    reasoning_effort: xhigh
+  security-reviewer:
+    role: 安全审查
+    model: gpt-5.4
+    reasoning_effort: xhigh
+
+# 规则
+rules:
+  - security.md
+  - coding-style.md
+  - testing.md
+  - git-workflow.md
+
+# 数据存储
+storage:
+  ai_state: .ai_state/
+  knowledge: .knowledge/

@@ -1,0 +1,31 @@
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
+personality = "pragmatic"
+service_tier = "fast"
+
+# MCP Servers
+[mcp_servers.context7]
+type = "stdio"
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+
+[mcp_servers.context7.env]
+
+# Optional: GrokSearch (requires API keys)
+# [mcp_servers.groksearch]
+# type = "stdio"
+# command = "python3"
+# args = ["-m", "grok_search.server"]
+# [mcp_servers.groksearch.env]
+# GROK_API_URL = "https://api.x.ai/v1"
+# GROK_API_KEY = "<YOUR_KEY>"
+
+[features]
+multi_agent = true
+codex_hooks = true
+
+[plugins."github@openai-curated"]
+enabled = true
+
+[tui]
+terminal_title = []

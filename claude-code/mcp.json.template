@@ -1,0 +1,24 @@
+{
+  "_comment": "Copy to ~/.claude/.mcp.json and fill in your API keys",
+  "mcpServers": {
+    "codex": {
+      "command": "codex",
+      "args": ["mcp-server"]
+    },
+    "gemini": {
+      "command": "gemini",
+      "args": ["--mcp"]
+    },
+    "groksearch": {
+      "command": "python3",
+      "args": ["-m", "grok_search.server"],
+      "env": {
+        "GROK_API_URL": "https://api.x.ai/v1",
+        "GROK_API_KEY": "<YOUR_GROK_API_KEY>",
+        "GROK_MODEL": "grok-3",
+        "TAVILY_ENABLED": "true",
+        "TAVILY_API_KEY": "<YOUR_TAVILY_API_KEY>"
+      }
+    }
+  }
+}
