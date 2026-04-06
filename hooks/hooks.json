@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[FantaySpec] 铁律: 先读后写 | 角色Prompt | 并行执行 | 阶段清理')\"",
+            "timeout": 3000
+          }
+        ],
+        "description": "Core principles reminder"
+      }
+    ],
+
+    "PreToolUse": [
+      {
+        "matcher": "tool == \"Edit\" || tool == \"Write\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const d=JSON.parse(fs.readFileSync(0,'utf8'));const p=d.tool_input?.file_path||'';if(p.includes('.env')||p.includes('package-lock.json')||p.includes('.git/')||p.includes('node_modules')){console.error('[Blocked] Protected file: '+p);process.exit(2)}\"",
+            "timeout": 5000
+          }
+        ],
+        "description": "Block protected files"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"rm\\s+-rf\\s+(\\/|~|\\.\\.)|DROP\\s+(DATABASE|TABLE)|TRUNCATE\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[BLOCKED] Destructive command detected.');process.exit(2)\"",
+            "timeout": 3000
+          }
+        ],
+        "description": "Block destructive commands"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"git push\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.error('[Push] 检查: 测试通过? 类型检查? 无敏感信息? 已审查?')\"",
+            "timeout": 3000
+          }
+        ],
+        "description": "Git push checklist"
+      }
+    ],
+
+    "PostToolUse": [
+      {
+        "matcher": "tool == \"mcp__codex__codex\" || tool == \"mcp__gemini__gemini\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/fantasy/.claude/scripts/session-id-saver.js",
+            "timeout": 5000
+          }
+        ],
+        "description": "Auto-save SESSION_ID from Codex/Gemini calls"
+      },
+      {
+        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const{execFileSync}=require('child_process');const fs=require('fs');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p&&fs.existsSync(p)&&fs.existsSync('node_modules/.bin/prettier')){try{execFileSync('npx',['prettier','--write',p],{stdio:['pipe','pipe','pipe']});console.error('[Formatted] '+p)}catch(e){}}console.log(d)})\"",
+            "timeout": 30000
+          }
+        ],
+        "description": "Auto-format with Prettier"
+      },
+      {
+        "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx)$\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const{execSync}=require('child_process');const fs=require('fs');const path=require('path');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const p=i.tool_input?.file_path;if(p&&fs.existsSync(p)){let dir=path.dirname(p);while(dir!==path.dirname(dir)&&!fs.existsSync(path.join(dir,'tsconfig.json'))){dir=path.dirname(dir)}if(fs.existsSync(path.join(dir,'tsconfig.json'))){try{execSync('npx tsc --noEmit --pretty false 2>&1',{cwd:dir,encoding:'utf8',stdio:['pipe','pipe','pipe']})}catch(e){const lines=(e.stdout||'').split('\\n').filter(l=>l.includes(path.basename(p))).slice(0,5);if(lines.length){console.error('[TypeCheck] Errors in '+p+':');lines.forEach(l=>console.error('  '+l))}}}}console.log(d)})\"",
+            "timeout": 60000
+          }
+        ],
+        "description": "TypeScript check after .ts/.tsx edits"
+      },
+      {
+        "matcher": "tool == \"Bash\" && tool_input.command matches \"gh pr create\"",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{const i=JSON.parse(d);const out=i.tool_output?.output||'';const m=out.match(/https:\\/\\/github.com\\/[^/]+\\/[^/]+\\/pull\\/\\d+/);if(m){console.error('[PR] '+m[0])}console.log(d)})\"",
+            "timeout": 5000
+          }
+        ],
+        "description": "Extract PR URL"
+      }
+    ],
+
+    "PreCompact": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const dir='.ai_state/sessions';if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true})}const ts=new Date().toISOString().replace(/[:.]/g,'-');fs.writeFileSync(dir+'/pre-compact-'+ts+'.json',JSON.stringify({timestamp:new Date().toISOString(),event:'pre-compact'},null,2));console.error('[State] Saved before compact')\"",
+            "timeout": 5000
+          }
+        ],
+        "description": "Save state before compaction"
+      }
+    ],
+
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const{execSync}=require('child_process');try{const s=execSync('git status --porcelain 2>/dev/null',{encoding:'utf8'});if(s.trim()){console.error('[Stop] '+s.trim().split('\\n').length+' uncommitted changes')}}catch(e){}\"",
+            "timeout": 5000
+          }
+        ],
+        "description": "Show uncommitted changes count on stop"
+      }
+    ],
+
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const d=JSON.parse(require('fs').readFileSync(0,'utf8'));const msg=d.message||'Claude needs attention';if(process.platform==='darwin'){require('child_process').exec('osascript -e \\'display notification \\\"'+msg.replace(/'/g,\"'\\\"'\\\"'\")+'\\\" with title \\\"FantaySpec\\\"\\'')}else if(process.platform==='linux'){require('child_process').exec('notify-send \\\"FantaySpec\\\" \\\"'+msg+'\\\"')}\"",
+            "timeout": 5000
+          }
+        ],
+        "description": "Desktop notification"
+      }
+    ]
+  }
+}
